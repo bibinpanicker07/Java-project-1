@@ -1,1 +1,1 @@
-install java, docker, trivy on jenkins
+install java, docker, trivy, kubectl on jenkins
