@@ -48,7 +48,7 @@ pipeline {
         stage('Sonarqube analysis') {
             steps {
             withSonarQubeEnv('sonar') {
-                sh "$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=BlueGreen -Dsonar.projectName=BlueGreen -Dsonar.java.binaries=target"
+                sh "$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=JavaApp -Dsonar.projectName=JavaApp -Dsonar.java.binaries=target"
                 }
                 
             }
