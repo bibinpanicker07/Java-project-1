@@ -1,8 +1,8 @@
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bankapp-green
+  name: bankapp-blue
+  namespace: webapps
 spec:
   replicas: 1
   selector:
@@ -17,17 +17,26 @@ spec:
     spec:
       containers:
       - name: bankapp
-        image: bibin2025/bankapp:green # Adjust the image tag for the green version
+        image: bibin2025/bankapp:green
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
         env:
         - name: SPRING_DATASOURCE_URL
-          value: jdbc:mysql://mysql-service:3306/bankappdb?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+          valueFrom:
+            configMapKeyRef:
+              name: db-config
+              key: SPRING_DATASOURCE_URL
         - name: SPRING_DATASOURCE_USERNAME
-          value: root
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: SPRING_DATASOURCE_USERNAME
         - name: SPRING_DATASOURCE_PASSWORD
-          value: Test@123
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: SPRING_DATASOURCE_PASSWORD
         resources:
           requests:
             memory: "256Mi"
