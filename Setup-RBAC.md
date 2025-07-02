@@ -1,4 +1,3 @@
-## Create Service Account, Role & Assign that role, And create a secret for Service Account and geenrate a Token
 
 ### Creating Service Account
 
@@ -102,4 +101,13 @@ roleRef:
 ```
 ### Generate token using service account in the namespace
 
-[Create Token](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#:~:text=To%20create%20a%20non%2Dexpiring,with%20that%20generated%20token%20data.)
+```
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: mysecretname
+  namespace: webapps
+  annotations:
+    kubernetes.io/service-account.name: jenkins
+```
