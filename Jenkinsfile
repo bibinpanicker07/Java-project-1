@@ -12,16 +12,18 @@ pipeline {
     }
     
     environment {
-        IMAGE_NAME = "yogesh2024/bankapp"
+        IMAGE_NAME = "bibin2025/bankapp"
         TAG = "${params.DOCKER_TAG}"
         KUBE_NAMESPACE = 'webapps'
         SCANNER_HOME = tool 'sonar-scanner'
+        EKS_SERVER_URL = credentials('eks-api-url')
     }
+    
 
     stages {
         stage('Git Checkout') {
             steps {
-                git branch: 'main', credentialsId: 'github-token', url: 'https://github.com/iam-yogeshreddy/Blue-Green-Deployment.git'
+                git branch: 'main', credentialsId: 'github-token', url: 'https://github.com/bibinpanicker07/Java-project-1.git'
             }
         }
         
@@ -33,7 +35,7 @@ pipeline {
         
         stage('Tests') {
             steps {
-                sh "mvn clean test -X -DskipTests=true"
+                sh "mvn clean test"
             }
         }
         
@@ -106,7 +108,7 @@ pipeline {
         stage('Deploy MySQL Deployment and Service') {
             steps {
                 script {
-                    withKubeConfig(caCertificate: '', clusterName: 'yogesh-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://35511BC37C08D2DA0E7A158A8AAD411F.gr7.ap-south-1.eks.amazonaws.com') {
+                    withKubeConfig(caCertificate: '', clusterName: 'eks-cluster', contextName: '', credentialsId: 'k8s-token', namespace: "${KUBE_NAMESPACE}", restrictKubeConfigAccess: false, serverUrl: "${EKS_SERVER_URL}") {
                         sh "kubectl apply -f mysql-ds.yml -n ${KUBE_NAMESPACE}"
                         
                     }
@@ -122,7 +124,7 @@ pipeline {
         stage('Deploy SVC app') {
             steps {
                 script {
-                    withKubeConfig(caCertificate: '', clusterName: 'yogesh-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://35511BC37C08D2DA0E7A158A8AAD411F.gr7.ap-south-1.eks.amazonaws.com') {
+                    withKubeConfig(caCertificate: '', clusterName: 'eks-cluster', contextName: '', credentialsId: 'k8s-token', namespace: "${KUBE_NAMESPACE}", restrictKubeConfigAccess: false, serverUrl: "${EKS_SERVER_URL}") {
                         sh """ if ! kubectl get svc bankapp-service -n ${KUBE_NAMESPACE}; then
                                 kubectl apply -f bankapp-service.yml -n ${KUBE_NAMESPACE}
                               fi
@@ -144,7 +146,7 @@ pipeline {
                         deploymentFile = 'app-deployment-green.yml'
                     }
                     
-                    withKubeConfig(caCertificate: '', clusterName: 'yogesh-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://35511BC37C08D2DA0E7A158A8AAD411F.gr7.ap-south-1.eks.amazonaws.com') {
+                    withKubeConfig(caCertificate: '', clusterName: 'eks-cluster', contextName: '', credentialsId: 'k8s-token', namespace: "${KUBE_NAMESPACE}", restrictKubeConfigAccess: false, serverUrl: "${EKS_SERVER_URL}") {
                         sh "kubectl apply -f ${deploymentFile} -n ${KUBE_NAMESPACE}"
                         
                     }
@@ -162,7 +164,7 @@ pipeline {
                     def newEnv = params.DEPLOY_ENV
 
                     // Always switch traffic based on DEPLOY_ENV
-                    withKubeConfig(caCertificate: '', clusterName: 'yogesh-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://35511BC37C08D2DA0E7A158A8AAD411F.gr7.ap-south-1.eks.amazonaws.com') {
+                    withKubeConfig(caCertificate: '', clusterName: 'eks-cluster', contextName: '', credentialsId: 'k8s-token', namespace: "${KUBE_NAMESPACE}", restrictKubeConfigAccess: false, serverUrl: "${EKS_SERVER_URL}") {
                         sh '''
                             kubectl patch service bankapp-service -p "{\\"spec\\": {\\"selector\\": {\\"app\\": \\"bankapp\\", \\"version\\": \\"''' + newEnv + '''\\"}}}" -n ${KUBE_NAMESPACE}
                         '''
@@ -176,7 +178,7 @@ pipeline {
             steps {
                 script {
                     def verifyEnv = params.DEPLOY_ENV
-                    withKubeConfig(caCertificate: '', clusterName: 'yogesh-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://35511BC37C08D2DA0E7A158A8AAD411F.gr7.ap-south-1.eks.amazonaws.com') {
+                    withKubeConfig(caCertificate: '', clusterName: 'eks-cluster', contextName: '', credentialsId: 'k8s-token', namespace: "${KUBE_NAMESPACE}", restrictKubeConfigAccess: false, serverUrl: "${EKS_SERVER_URL}") {
                         sh """
                         kubectl get pods -l version=${verifyEnv} -n ${KUBE_NAMESPACE}
                         kubectl get svc bankapp-service -n ${KUBE_NAMESPACE}
@@ -184,8 +186,6 @@ pipeline {
                     }
                 }
             }
-        }
-        
-     
+        }     
     }
 }
