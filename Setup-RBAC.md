@@ -101,7 +101,7 @@ roleRef:
 ```
 ### Generate token using service account in the namespace
 
-```
+```yaml
 apiVersion: v1
 kind: Secret
 type: kubernetes.io/service-account-token
