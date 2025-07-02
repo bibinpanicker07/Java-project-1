@@ -3,7 +3,7 @@
 
 This project demonstrates a **production-grade DevOps pipeline** that deploys a Spring Boot + MySQL application to **Amazon EKS** using **Blue-Green Deployment**, fully automated with **Jenkins CI/CD** and integrated with **DevSecOps tools**.
 
-![Architecture Diagram](./A_flowchart_diagram_in_this_2D_digital_illustratio.png)
+![Architecture Diagram](./Architecture diagram.png)
 
 ---
 
