@@ -72,33 +72,7 @@ subjects:
   kind: ServiceAccount
   name: jenkins 
 ```
-### Create Cluster role & bind to Service Account
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: jenkins-cluster-role
-rules:
-- apiGroups: [""]
-  resources: ["persistentvolumes"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
----
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: jenkins-cluster-role-binding
-subjects:
-- kind: ServiceAccount
-  name: jenkins
-  namespace: webapps
-roleRef:
-  kind: ClusterRole
-  name: jenkins-cluster-role
-  apiGroup: rbac.authorization.k8s.io
-
-```
 ### Generate token using service account in the namespace
 
 ```yaml
