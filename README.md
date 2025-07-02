@@ -1,6 +1,10 @@
 install java, docker, trivy, kubectl on jenkins
 docker run -d -p 8081:8081 sonatype/nexus3
 docker run -d -p 9000:9000 sonarqube:lts-community 
+sudo usermod -aG docker ${USER}
+newgrp docker
+sudo snap install kubectl
+aws eks update-kubeconfig --name eks-cluster --region us-east-1
 enabel rbac - create sa, role, role bindind, create token and add in jenkins
 add token from sonarqube on jenkins(security->users->token on sonarqube dashboard)
 configure sonarqube server using this credentials
