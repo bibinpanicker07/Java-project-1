@@ -1,8 +1,8 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql
+  namespace: webapps
 spec:
   selector:
     matchLabels:
@@ -19,9 +19,15 @@ spec:
         name: mysql
         env:
         - name: MYSQL_ROOT_PASSWORD
-          value: "Test@123"
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_ROOT_PASSWORD
         - name: MYSQL_DATABASE
-          value: "bankappdb"
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_DATABASE
         ports:
         - containerPort: 3306
           name: mysql
@@ -32,13 +38,3 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql-service
-spec:
-  ports:
-  - port: 3306
-  selector:
-    app: mysql
