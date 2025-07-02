@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
       - name: bankapp
-        image: yogesh2024/bankapp:blue # Adjust the image tag for the blue version
+        image: bibin2025/bankapp:blue # Adjust the image tag for the blue version
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
         env:
