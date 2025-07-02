@@ -1,208 +1,100 @@
-install java, docker, trivy, kubectl on jenkins
-docker run -d -p 8081:8081 sonatype/nexus3
-docker run -d -p 9000:9000 sonarqube:lts-community 
-sudo usermod -aG docker ${USER}
-newgrp docker
-sudo snap install kubectl
-aws eks update-kubeconfig --name eks-cluster --region us-east-1
-enabel rbac - create sa, role, role bindind, create token and add in jenkins
-add token from sonarqube on jenkins(security->users->token on sonarqube dashboard)
-configure sonarqube server using this credentials
-configure manage nodes with nexus username and pass
-add the nexus url in pom.xml
 
+# 🚀 Blue-Green Deployment with Jenkins CI/CD on Amazon EKS
 
-Issue faced
-docker build failed as the docker grp access for jenkins was given but jenkins was not restarted
+This project demonstrates a **production-grade DevOps pipeline** that deploys a Spring Boot + MySQL application to **Amazon EKS** using **Blue-Green Deployment**, fully automated with **Jenkins CI/CD** and integrated with **DevSecOps tools**.
 
+![Architecture Diagram](./A_flowchart_diagram_in_this_2D_digital_illustratio.png)
 
-pipeline {
-    agent any
-    
-    tools {
-        maven 'maven3'
-    }
-    
-    parameters {
-        choice(name: 'DEPLOY_ENV', choices: ['blue', 'green'], description: 'Choose which environment to deploy: Blue or Green')
-        choice(name: 'DOCKER_TAG', choices: ['blue', 'green'], description: 'Choose the Docker image tag for the deployment')
-        booleanParam(name: 'SWITCH_TRAFFIC', defaultValue: false, description: 'Switch traffic between Blue and Green')
-    }
-    
-    environment {
-        IMAGE_NAME = "bibin2025/bankapp"
-        TAG = "${params.DOCKER_TAG}"
-        KUBE_NAMESPACE = 'webapps'
-        SCANNER_HOME = tool 'sonar-scanner'
-    }
+---
 
-    stages {
-        stage('Git Checkout') {
-            steps {
-                git branch: 'main', credentialsId: 'git-credentials', url: 'https://github.com/bibinpanicker07/Java-project-1.git'
-            }
-        }
-        
-        stage('Compile') {
-            steps {
-                sh "mvn compile"
-            }
-        }
-        
-        stage('Tests') {
-            steps {
-                sh "mvn clean test -X -DskipTests=true"
-            }
-        }
-        
-        stage('Trivy FS scan') {
-            steps {
-                sh "trivy fs --format table -o fs.html ."
-            }
-        }
-        
-        stage('Sonarqube analysis') {
-            steps {
-            withSonarQubeEnv('sonar') {
-                sh "$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=BlueGreen -Dsonar.projectName=BlueGreen -Dsonar.java.binaries=target"
-                }
-                
-            }
-        }
-        
-        
-        stage('Code Quality check') {
-            steps {
-                timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: false 
-                }
-            }
-        }
-        
-        stage('Build') {
-            steps {
-                sh "mvn package -DskipTests=true"
-            }
-        }
-        
-        stage('Publish artifact To Nexus') {
-            steps {
-                withMaven(globalMavenSettingsConfig: 'maven-settings', jdk: '', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
-                    sh "mvn deploy -X -DskipTests=true"
-                }
-            }
-        }
-        
-        stage('Docker Build & tag image') {
-            steps {
-                script{
-                    withDockerRegistry(credentialsId: 'docker-credentials') {
-                        sh "docker build -t ${IMAGE_NAME}:${TAG} ."
-                    }
-                }
-            }
-        }
-        
-        
-         stage('trivy image scan') {
-            steps {
-                sh "trivy image --format table -o fs.html ${IMAGE_NAME}:${TAG}"
-            }
-        }
-        
-        stage('Docker Push image') {
-            steps {
-                script{
-                    withDockerRegistry(credentialsId: 'docker-credentials') {
-                        sh "docker push ${IMAGE_NAME}:${TAG}"
-                    }
-                }
-            }
-        }
-        
-        stage('Deploy MySQL Deployment and Service') {
-            steps {
-                script {
-                    withKubeConfig(caCertificate: '', clusterName: 'eks-cluster', contextName: '', credentialsId: 'k8s-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://F4BEB157C2D0297DBF0C5626430EF198.gr7.us-east-1.eks.amazonaws.com') {
-                        sh "kubectl apply -f mysql-ds.yml -n ${KUBE_NAMESPACE} --validate=false"
-                        
-                    }
-                    
-                }
-                
-            }
-            
-        }
-        
-        
-        
-        stage('Deploy SVC app') {
-            steps {
-                script {
-                    withKubeConfig(caCertificate: '', clusterName: 'eks-cluster', contextName: '', credentialsId: 'k8s-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://F4BEB157C2D0297DBF0C5626430EF198.gr7.us-east-1.eks.amazonaws.com') {
-                        sh """ if ! kubectl get svc bankapp-service -n ${KUBE_NAMESPACE}; then
-                                kubectl apply -f bankapp-service.yml -n ${KUBE_NAMESPACE}
-                              fi
-                        """
-                        }
-                    }
-                }
-            }
-        
-        
-        
-        stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    def deploymentFile = ""
-                    if (params.DEPLOY_ENV == 'blue') {
-                        deploymentFile = 'app-deployment-blue.yml'
-                    } else {
-                        deploymentFile = 'app-deployment-green.yml'
-                    }
-                    
-                    withKubeConfig(caCertificate: '', clusterName: 'eks-cluster', contextName: '', credentialsId: 'k8s-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://F4BEB157C2D0297DBF0C5626430EF198.gr7.us-east-1.eks.amazonaws.com') {
-                        sh "kubectl apply -f ${deploymentFile} -n ${KUBE_NAMESPACE}"
-                        
-                    }
-                }
-            }
-        }
-        
-        
-        stage('Switch Traffic Between Blue & Green Environment') {
-            when {
-                expression { return params.SWITCH_TRAFFIC }
-            }
-            steps {
-                script {
-                    def newEnv = params.DEPLOY_ENV
+## 📌 Key Features
 
-                    // Always switch traffic based on DEPLOY_ENV
-                    withKubeConfig(caCertificate: '', clusterName: 'eks-cluster', contextName: '', credentialsId: 'k8s-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://F4BEB157C2D0297DBF0C5626430EF198.gr7.us-east-1.eks.amazonaws.com') {
-                        sh '''
-                            kubectl patch service bankapp-service -p "{\\"spec\\": {\\"selector\\": {\\"app\\": \\"bankapp\\", \\"version\\": \\"''' + newEnv + '''\\"}}}" -n ${KUBE_NAMESPACE}
-                        '''
-                    }
-                    echo "Traffic has been switched to the ${newEnv} environment."
-                }
-            }
-        }
-        
-        stage('Verify Deployment') {
-            steps {
-                script {
-                    def verifyEnv = params.DEPLOY_ENV
-                    withKubeConfig(caCertificate: '', clusterName: 'eks-cluster', contextName: '', credentialsId: 'k8s-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://F4BEB157C2D0297DBF0C5626430EF198.gr7.us-east-1.eks.amazonaws.com') {
-                        sh """
-                        kubectl get pods -l version=${verifyEnv} -n ${KUBE_NAMESPACE}
-                        kubectl get svc bankapp-service -n ${KUBE_NAMESPACE}
-                        """
-                    }
-                }
-            }
-        }
-        
-     
-    }
-}
+- ✅ End-to-end **CI/CD pipeline using Jenkins**
+- ☸️ **Blue-Green deployment strategy** with zero downtime using Kubernetes on EKS
+- 📦 Docker image tagging and versioning (`blue` / `green`)
+- 🔐 **Secure infrastructure** with Kubernetes Secrets, RBAC, and isolated namespaces
+- 💾 MySQL database backed by **dynamic AWS EBS PVC provisioning**
+- 📊 Quality and security checks:
+  - 🔍 Static code analysis using **SonarQube**
+  - 🛡️ Image scanning with **Trivy**
+  - 📥 Artifact storage in **Nexus Repository**
+- ⚙️ **Parameter-driven Jenkins pipeline** to control environment and traffic routing
+- 🧱 Infrastructure as Code using **Terraform**
+
+---
+
+## 🛠️ Technologies Used
+
+- Java (Spring Boot)
+- Docker
+- Kubernetes (Amazon EKS)
+- Jenkins (CI/CD)
+- Trivy (Security scanning)
+- SonarQube (Code analysis)
+- Nexus Repository (Artifact management)
+- AWS EBS (Persistent storage)
+- Terraform (IaC)
+
+---
+
+## 📂 Project Structure
+
+```
+.
+├── app-deployment-blue.yml
+├── app-deployment-green.yml
+├── bankapp-service.yml
+├── mysql-ds.yml
+├── Jenkinsfile
+├── Dockerfile
+├── terraform/
+│   ├── eks-cluster.tf
+│   └── vpc.tf
+└── README.md
+```
+
+---
+
+## ⚙️ How It Works
+
+1. **Code push to GitHub** triggers Jenkins pipeline
+2. Pipeline stages:
+   - `Compile` and `Test` with Maven
+   - `SonarQube` analysis and `Trivy` scan
+   - `Package` and push Docker image to Nexus
+   - Deploy MySQL to EKS with PVC backed by EBS
+   - Deploy application to **Blue** or **Green** environment
+3. **Traffic switching** handled via `kubectl patch` to update Service selector
+4. Option to verify or roll back easily using Jenkins parameters
+
+---
+
+## 🚦 Traffic Switch Logic (Blue/Green)
+
+- Jenkins pipeline includes:
+  - `DEPLOY_ENV`: Choose `blue` or `green` environment
+  - `SWITCH_TRAFFIC`: Toggle to reroute live traffic
+- Traffic routing is achieved by patching the Kubernetes service selector.
+
+---
+
+## 📸 Sample Output
+
+Run:
+```bash
+kubectl get svc bankapp-service -n webapps
+kubectl get pods -l version=blue -n webapps
+```
+
+---
+
+## 🙌 Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+---
+
+## 📣 Connect With Me
+
+> **🔗 LinkedIn**: [linkedin.com/in/bibinpanicker](https://www.linkedin.com/in/bibinpanicker)  
+> **📁 Project Repo**: [Java-project-1](https://github.com/bibinpanicker07/Java-project-1)
