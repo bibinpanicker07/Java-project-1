@@ -16,7 +16,7 @@ pipeline {
         TAG = "${params.DOCKER_TAG}"
         KUBE_NAMESPACE = 'webapps'
         SCANNER_HOME = tool 'sonar-scanner'
-        EKS_SERVER_URL = credentials('eks-api-url')
+        EKS_SERVER_URL = ''
     }
     
 
