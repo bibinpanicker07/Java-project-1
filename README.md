@@ -3,7 +3,7 @@
 
 This project sets up a CI/CD pipeline using Jenkins to deploy a Spring Boot and MySQL app on Amazon EKS using the Blue-Green deployment strategy.
 
-![Architecture Diagram](./arch-diagram.jpg)
+![Architecture Diagram](./architecture-diagram.jpg)
 ---
 
 - Build and test the app with Maven
