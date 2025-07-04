@@ -1,5 +1,5 @@
 
-# 🚀 Blue-Green Deployment on AWS EKS with Jenkins
+#  Blue-Green Deployment on AWS EKS with Jenkins
 
 This project sets up a CI/CD pipeline using Jenkins to deploy a Spring Boot and MySQL app on Amazon EKS using the Blue-Green deployment strategy.
 
@@ -15,7 +15,7 @@ This project sets up a CI/CD pipeline using Jenkins to deploy a Spring Boot and 
 
 ---
 
-## 🧰 Tools & Technologies
+## Tools & Technologies
 
 - Docker
 - Kubernetes (Amazon EKS)
@@ -27,7 +27,7 @@ This project sets up a CI/CD pipeline using Jenkins to deploy a Spring Boot and 
 
 ---
 
-## 🚦 How Blue-Green Works
+## How Blue-Green Works
 
 1. Jenkins builds, tests, scans, and pushes the app
 2. Deploys either to Blue or Green environment on EKS
